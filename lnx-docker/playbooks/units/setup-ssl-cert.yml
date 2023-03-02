@@ -1,6 +1,5 @@
 ---
-#https://github.com/paulczar/omgwtfssl
-#setup sll cert
+#setup ssl cert
   - name: remove website_cert container
     shell: |
         podman rm website_cert
