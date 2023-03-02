@@ -1,0 +1,52 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  
+  INVENTORY = "playbooks/hosts"
+  PLAYBOOK = "playbooks/site.yml"  
+  
+  config.vm.define "lnx-docker", primary: true do |config|  
+    config.vm.box_check_update = false 
+    config.vm.box = "generic/centos9s" 
+	config.vm.boot_timeout = 1800 
+    config.vm.communicator = :ssh 
+    config.vm.guest = :linux
+    
+    config.vm.synced_folder './', '/vagrant', disabled: true #Wichtig für Sicherheit; Deaktivierung des Shared Folders mit Host
+	
+    config.ssh.insert_key = false
+	config.ssh.private_key_path = [ "playbooks/sshkey/insecure_private_key", 
+	                                "playbooks/sshkey/lnx-docker-key"]
+  
+    ["vmware_desktop"].each do |provider| 
+      config.vm.provider provider do |v|
+         v.allowlist_verified = :disable_warning #Ermittlung der IP nach Start, über DHCP Server
+         v.enable_vmrun_ip_lookup = true
+         v.unmount_default_hgfs = true
+         # v.whitelist_verified = true
+         
+         v.gui = true
+      
+         v.vmx["cpuid.coresPerSocket"] = "1"
+         v.vmx["memsize"] = "2048"
+         v.vmx["numvcpus"] = "2"
+         v.vmx["floppy0.present"] = "false"
+		 
+		 # v.vmx["svga.autodetect"] = "false"
+		 # v.vmx["svga.maxWidth"] = "2560"
+		 # v.vmx["svga.maxHeight"] = "2048"
+		 # v.vmx["svga.vramSize"] = "20971520"
+		 # v.vmx["svga.numDisplays"] = "1"
+      #Netzwerkkonfig
+         v.vmx["ethernet0.present"] = "true"
+         v.vmx["ethernet0.connectionType"] = "custom"
+         v.vmx["ethernet0.addressType"] = "static"
+         v.vmx["ethernet0.address"] = "00:50:56:2A:C6:D7"
+         v.vmx["ethernet0.vnet"] = "vmnet1"
+         v.vmx["ethernet0.displayName"] = "VMnet1"
+         v.vmx["ethernet0.virtualDev"] = "e1000"
+       end
+    end
+  end
+end
