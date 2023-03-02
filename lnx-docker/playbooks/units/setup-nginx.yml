@@ -5,20 +5,20 @@
         src: "{{ playbook_dir }}/files/srv_https.conf"
         dest: "/home/{{ ansible_user }}/srv_https.conf"
   
-#  - name: create certs_copy-folder
-#    file:
-#      path: /home/admin/certs_copy
-#      state: directory
+  - name: create certs_copy-folder
+    file:
+      path: /home/admin/certs_copy
+      state: directory
       
-#  - name: copy key.pem
-#    shell: |
-#        cp /home/admin/certs/key.pem /home/admin/certs_copy/key.pem
-#        chmod 644 /home/admin/certs_copy/key.pem
+  - name: copy key.pem
+    shell: |
+        cp /home/admin/certs/key.pem /home/admin/certs_copy/key.pem
+        chmod 644 /home/admin/certs_copy/key.pem
         
-#  - name: moving files
-#    shell: |
-#        cat /home/admin/certs/cert.pem /home/admin/certs/ca.pem > /home/admin/certs_copy/bundle.pem
-#        chmod 644 /home/admin/certs_copy/bundle.pem
+  - name: moving files
+    shell: |
+        cat /home/admin/certs/cert.pem /home/admin/certs/ca.pem > /home/admin/certs_copy/bundle.pem
+        chmod 644 /home/admin/certs_copy/bundle.pem
   
   - name: "check if service {{ podman.nginx.service.name }} is active"
     shell: |
