@@ -97,15 +97,15 @@
     
   - name: setup podman pod
     include: units/setup-pod.yml
-    tags: pod, test
+    tags: update
   
   - name: setup nextjs
     include: units/setup-nextjs.yml
-    tags: nextjs, test
-    
+    tags: update
+
   - name: setup nextjs service
     include: units/setup-nextjs-service.yml
-    tags: nextjs, test
+    tags: update
   
   - name: automated check for git updates
     include: units/check-git-service.yml
@@ -113,15 +113,15 @@
     
   - name: generate ssl certs
     include: units/setup-ssl-cert.yml
-    tags: cert
+    tags: update
   
   - name: setup nginx upstream
     include: units/setup-nginx.yml
-    tags: nginx, test
+    tags: update
     
   - name: setup nginx service
     include: units/setup-nginx-service.yml
-    tags: nginx, test
+    tags: update
     
   post_tasks:
   - name: cleanup <none>-containers
