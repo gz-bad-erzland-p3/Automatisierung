@@ -1,0 +1,30 @@
+---
+#setup service for automated git update check
+  - name: copy bash script to vm 
+    ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/{{ custom_check.file.name }}"
+        dest: "/home/{{ ansible_user }}/{{ custom_check.file.name }}"
+        mode: a+x
+        force: true
+        
+  - name: copy systemd service to vm
+    copy:
+        src: "{{ playbook_dir }}/files/{{ custom_check.file.systemd.service }}"
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/{{ custom_check.file.systemd.service }}"
+        force: true
+
+  - name: copy systemd timer to vm
+    copy:
+        src: "{{ playbook_dir }}/files/{{ custom_check.file.systemd.timer }}"
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/{{ custom_check.file.systemd.timer }}"
+        force: true
+        
+  - name: reload systemd daemon
+    ansible.builtin.systemd:
+        daemon_reexec: yes
+        scope: user
+        
+  - name: "start {{ custom_check.file.systemd.timer }} unit"
+    shell: | 
+        systemctl --user start {{ custom_check.file.systemd.timer }} && \
+        systemctl --user enable {{ custom_check.file.systemd.timer }}

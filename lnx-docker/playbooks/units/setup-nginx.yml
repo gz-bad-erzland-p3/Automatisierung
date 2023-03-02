@@ -1,0 +1,68 @@
+---
+#playbook for setup the nginx container      
+  - name: copy nginx.conf file
+    copy:
+        src: "{{ playbook_dir }}/files/srv_https.conf"
+        dest: "/home/{{ ansible_user }}/srv_https.conf"
+  
+#  - name: create certs_copy-folder
+#    file:
+#      path: /home/admin/certs_copy
+#      state: directory
+      
+#  - name: copy key.pem
+#    shell: |
+#        cp /home/admin/certs/key.pem /home/admin/certs_copy/key.pem
+#        chmod 644 /home/admin/certs_copy/key.pem
+        
+#  - name: moving files
+#    shell: |
+#        cat /home/admin/certs/cert.pem /home/admin/certs/ca.pem > /home/admin/certs_copy/bundle.pem
+#        chmod 644 /home/admin/certs_copy/bundle.pem
+  
+  - name: "check if service {{ podman.nginx.service.name }} is active"
+    shell: |
+        systemctl --user is-active {{ podman.nginx.service.name }}
+    changed_when: container_nginx_service_active.rc > 0    
+    register: container_nginx_service_active
+    failed_when: false 
+
+  - name: "create {{ podman.nginx.name }}"
+    shell: |
+        podman create --name {{ podman.nginx.name }} \
+        -v /home/admin/srv_https.conf:/etc/nginx/conf.d/srv_https.conf:Z \
+        -v /home/admin/certs_copy:/etc/nginx/certs:Z \
+        --pod service_pod \
+        docker.io/library/nginx:alpine
+    when: container_nginx_service_active is changed
+    
+  - name: "start {{ podman.nginx.name }}"
+    shell: |
+        podman start {{ podman.nginx.name }}
+    when: container_nginx_service_active is changed
+        
+  - name: create systemd service
+    containers.podman.podman_container:
+      name: "{{ podman.nginx.name }}"
+      generate_systemd:
+        new: true
+        path: "{{ podman.nginx.service.path }}"
+        restart_policy: no
+    when: container_nginx_service_active is changed
+
+  - name: systemctl daemon-reload 
+    ansible.builtin.systemd:
+      daemon_reexec: yes
+      scope: user
+     
+  - name: "check for running container {{ podman.nginx.name }}"
+    ansible.builtin.service:
+       name: "{{ podman.nginx.service.name }}"
+       state: started
+       scope: user
+    register: container_nginx_is_started   
+    until: container_nginx_is_started.status.ActiveState == "active"
+    changed_when: container_nginx_is_started.status.ActiveState == "active"
+    failed_when: false
+    retries: 5
+    delay: 3

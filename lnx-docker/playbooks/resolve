@@ -1,0 +1,3 @@
+# Contains all entries to inject into podmam-container: '/etc/hosts' file.
+
+192.168.1.10     gz-bad-erzland-p3

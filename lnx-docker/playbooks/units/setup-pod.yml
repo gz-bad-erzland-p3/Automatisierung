@@ -1,0 +1,10 @@
+---
+#create pod
+  - name: remove podman pod
+    shell: |
+        podman pod rm -f service_pod
+
+  - name: create podman pod
+    shell: |
+     podman pod create --name service_pod -p 8443:443 -p 3000:3000
+    

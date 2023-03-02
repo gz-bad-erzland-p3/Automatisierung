@@ -1,0 +1,34 @@
+---
+#playbook for setup cmk-agent
+    
+  - name: "download {{ checkmk.agent.name }}"
+    shell: |
+        wget http://{{ checkmk.server.name }}/{{ checkmk.agent.location }}/{{ checkmk.agent.version }}.noarch.rpm --proxy=off   
+  
+  - name: "install {{ checkmk.agent.name }}"
+    become: true
+    dnf:
+        name: "{{ checkmk.agent.version }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+   
+  - name: "register {{ checkmk.agent.name }}"
+    become: true
+    shell: |
+        sudo cmk-agent-ctl register \
+        --hostname lnx-docker \
+        --server lnx-cmk:8000 \
+        --site gzbe \
+        --user {{ checkmk.user.automation.name }} \
+        --trust-cert \
+        --password {{ checkmk.user.automation.password }}
+  
+  - name: remove package
+    shell: |
+        rm -rf {{ checkmk.agent.version }}.noarch.rpm
+    
+  - name: "restart {{ checkmk.service.name }}"
+    become: true
+    shell: |
+        systemctl restart {{ checkmk.service.name }}
+    

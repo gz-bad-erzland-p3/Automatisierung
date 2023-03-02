@@ -1,0 +1,32 @@
+---
+#playbook for firewalld rules
+  - name: "allow {{ firewalld.service_http }}, {{ firewalld.service_https }} on {{ firewalld.name }}"
+    become: true
+    ansible.posix.firewalld:
+      service: "{{ item }}"
+      permanent: yes
+      state: enabled
+    loop: 
+    - "{{ firewalld.service_https }}"
+    - "{{ firewalld.service_http }}"
+    register: firewalld_services
+      
+      
+  - name: "allow ports on {{ firewalld.name }}"
+    become: true
+    ansible.posix.firewalld:
+      port: "{{ item }}"
+      permanent: yes
+      state: enabled
+    loop:
+    - "{{ firewalld.port_8443 }}"
+    - "{{ firewalld.port_8000 }}"
+    - "{{ firewalld.port_6556 }}"
+    register: firewalld_ports
+    
+  - name: restart firewalld
+    become: true
+    systemd:
+      name: firewalld
+      state: reloaded
+    when: (firewalld_services is changed) or (firewalld_ports is changed)

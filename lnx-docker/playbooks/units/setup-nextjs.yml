@@ -1,0 +1,60 @@
+---
+#playbook for setup the container
+  - name: "check presence of image: {{ podman.nextjs.image }}"
+    shell: |
+        podman images {{ podman.nextjs.image }} | grep -q {{ podman.nextjs.image }}
+    register: nextjs_image_exists
+    failed_when: false 
+    
+  - name: pull image
+    ansible.builtin.git:
+      repo: "{{ url.nextjs }}"
+      dest: /home/admin/nextjs
+      force: true
+    when: nextjs_image_exists.rc > 0
+      
+  - name: build image
+    containers.podman.podman_image:
+      name: "{{ podman.nextjs.image }}"
+      path: /home/admin/nextjs
+      build:
+         format: docker
+    when: nextjs_image_exists.rc > 0
+         
+  - name: "check if service {{ podman.nextjs.service.name }} is active"
+    shell: |
+        systemctl --user is-active {{ podman.nextjs.service.name }}
+    changed_when: container_nextjs_service_active.rc > 0    
+    register: container_nextjs_service_active
+    failed_when: false 
+  
+  - name: remove systemd 
+    include: remove-nextjs-systemd.yml
+    when: container_nextjs_service_active is changed
+    failed_when: false
+  
+  - name: "create {{ podman.nextjs.name }}"
+    shell: | 
+        podman create --name {{ podman.nextjs.name }} \
+        --pod service_pod \
+        localhost/nextjs:latest
+    when: container_nextjs_service_active is changed
+    
+  - name: "start {{ podman.nextjs.name }}"
+    shell: | 
+        podman start {{ podman.nextjs.name }}
+    when: container_nextjs_service_active is changed
+  
+  - name: create systemd 
+    containers.podman.podman_container:
+      name: "{{ podman.nextjs.name }}"
+      generate_systemd:
+        new: true
+        path: "{{ podman.nextjs.service.path }}"
+        restart_policy: no
+    when: container_nextjs_service_active is changed  
+ 
+  - name: systemctl daemon-reload
+    ansible.builtin.systemd:
+      daemon_reexec: yes
+      scope: user

@@ -1,0 +1,32 @@
+---
+# - name: playbook for setup user
+  - name: "create group {{ admin.group }}"
+    become: true
+    group: 
+      name: "{{ admin.group }}"
+      state: present       
+      
+  - name: "create user {{ admin.user }}" 
+    become: true
+    user: 
+      name: "{{ admin.user }}"
+      group: "{{ admin.group }}"
+      groups: wheel
+      append: yes
+      password: "{{ admin.password | password_hash('sha512') }}"
+      
+  - name: create .ssh for user {{ admin.user }}
+    become: true
+    file:
+      path: "/home/{{ admin.user }}/.ssh"
+      state: directory      
+   
+  - name: Set authorized key taken from local file
+    become: true
+    copy: 
+      src: "{{ inventory_dir }}/sshkey/lnx-docker-key.pub"
+      dest: "/home/{{ admin.user }}/.ssh/authorized_keys"
+      group: "{{ admin.group }}"
+      owner: "{{ admin.user }}"
+
+

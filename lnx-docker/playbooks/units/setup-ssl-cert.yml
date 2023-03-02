@@ -1,0 +1,42 @@
+---
+#https://github.com/paulczar/omgwtfssl
+#setup sll cert
+  - name: remove website_cert container
+    shell: |
+        podman rm website_cert
+    failed_when: false
+    
+  - name: "check presence of image: {{ podman.ssl.docker_image }}"
+    shell: |
+       podman images {{ podman.ssl.docker_image }} | grep -q {{ podman.ssl.docker_image }}  
+    register: docker_image_exists    
+    failed_when: false   
+    
+  - name: "pull image: {{ podman.ssl.docker_image }}"
+    shell: |
+        podman pull {{ podman.ssl.docker_image }}
+    when: docker_image_exists.rc > 0
+
+  - name: create dir /certs
+    file:
+        path: "/home/{{ ansible_user }}/certs"
+        state: directory
+        
+  - name: check if cert container exists 
+    shell: | 
+        podman ps -a | grep cert
+    register: cert_exists
+    failed_when: false
+    
+  - name: create cert container
+    shell: |
+        podman run --name website_cert \
+                -e SSL_SUBJECT={{ podman.ssl.cert_subject }} \
+                -e CA_SUBJECT=gzbe-ca \
+                -e CA_EXPIRE=365 \
+                -e SSL_IP=192.168.1.10 \
+                -e SSL_DNS=192.168.1.10 \
+                -e SSL_EXPIRE=365 \
+                -v $(pwd)/certs:/certs:Z \
+                {{ podman.ssl.docker_image }}
+    when: cert_exists.rc > 0

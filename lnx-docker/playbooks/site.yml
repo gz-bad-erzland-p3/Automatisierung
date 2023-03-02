@@ -1,0 +1,137 @@
+---
+- name: playbook for centOS hosts
+  hosts: centOS
+    
+  gather_facts: false
+    
+  pre_tasks:
+  
+  - name: "check for user {{ admin.user }}"
+    shell: |
+        ssh -F ./ssh-config lnx-docker "whoami"
+    delegate_to: localhost
+    args:
+       chdir: "{{ inventory_dir | dirname }}"
+    failed_when: false
+    register: connect_via_ssh_as_user_admin
+    
+  - block:       
+    - name: change to user vagrant
+      set_fact:
+         ansible_user: "vagrant"
+         ansible_become_pass: "vagrant"
+          
+    - name: setup user admin
+      ansible.builtin.include: units/setup-user.yml     
+      
+    - name: reset to user admin
+      set_fact:
+         ansible_user: "admin"
+         ansible_become_pass: "{{ admin_password }}"
+    
+    - name: set lingering mode
+      shell: |
+        loginctl enable-linger {{ ansible_user }}
+         
+    when: connect_via_ssh_as_user_admin.rc > 0  
+     
+  tasks: 
+  - name: ping test
+    ansible.builtin.ping:
+    tags: ping
+ 
+  - name: set hostname
+    ansible.builtin.hostname:
+       name: lnx-docker
+    become: true
+    tags: name
+    
+  - name: 'set keyboard layout to: de-nodeadkeys'
+    become: true 
+    ansible.builtin.shell: 
+       cmd: |
+          if localectl status | grep -q 'VC Keymap: us'; then 
+             sudo localectl set-keymap de-nodeadkeys ; fi
+             
+  - name: change timezone to Europe/Berlin
+    become: true 
+    timezone:
+        name: Europe/Berlin
+        
+  - name: create systemd path for user
+    file: 
+      path: "{{ podman.nextjs.service.path }}"
+      state: directory 
+  
+  - name: setup proxy
+    include: units/setup-proxy.yml
+  
+  - name: replace insecure vagrant key with own ssh key
+    ansible.builtin.copy:
+        src: "{{ playbook_dir }}/sshkey/lnx-docker-key.pub"
+        dest: "~/.ssh/authorized_keys"
+    tags: keys
+  
+  - name: Upgrade all packages
+    become: true 
+    dnf:  name="*" state=latest
+    tags: pkgupgrade
+    
+  - name: setup firewalld
+    include: units/firewalld.yml
+    tags: firewall
+    
+  - name: setup cmk-agent
+    include: units/setup-cmk-agent.yml
+    tags: cmk
+       
+  - name: install repository
+    include: units/install-repository.yml
+  
+  - name: install required packages
+    include: units/install-req-packages.yml
+    
+  - name: install podman
+    include: units/install-podman.yml
+    tags: podman
+    
+  - name: setup podman pod
+    include: units/setup-pod.yml
+    tags: pod, test
+  
+  - name: setup nextjs
+    include: units/setup-nextjs.yml
+    tags: nextjs, test
+    
+  - name: setup nextjs service
+    include: units/setup-nextjs-service.yml
+    tags: nextjs, test
+  
+  - name: automated check for git updates
+    include: units/check-git-service.yml
+    tags: service
+    
+  - name: generate ssl certs
+    include: units/setup-ssl-cert.yml
+    tags: cert
+  
+  - name: setup nginx upstream
+    include: units/setup-nginx.yml
+    tags: nginx, test
+    
+  - name: setup nginx service
+    include: units/setup-nginx-service.yml
+    tags: nginx, test
+    
+  post_tasks:
+  - name: cleanup <none>-containers
+    shell: |
+        podman images -a | grep none | awk '{ print $3; }' | xargs podman rmi
+    failed_when: false
+  
+  - name: remove vagrant user
+    become: true
+    user:
+      name: vagrant
+      state: absent
+    tags: remove

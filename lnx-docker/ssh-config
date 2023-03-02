@@ -1,0 +1,12 @@
+Host lnx-docker
+  HostName lnx-docker
+  User admin
+  Port 22
+  UserKnownHostsFile /dev/null
+  StrictHostKeyChecking no
+  PasswordAuthentication no
+  IdentityFile playbooks/sshkey/lnx-docker-key
+  IdentityFile playbooks/sshkey/insecure_private_key
+  IdentitiesOnly yes
+  LogLevel FATAL
+

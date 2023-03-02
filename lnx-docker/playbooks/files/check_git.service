@@ -1,0 +1,10 @@
+[Unit]
+Description=check git service
+
+[Service]
+ExecStart=/home/admin/check_git.sh
+#RemainAfterExit=yes
+#type=exec
+
+[Install]
+WantedBy=multi-user.target

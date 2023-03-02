@@ -1,0 +1,18 @@
+---
+#playbook for setup the nginx service
+  - name: check systemctl status
+    ansible.builtin.command:
+      cmd: systemctl --user is-active {{ podman.nginx.service.name }}
+    register: container_isactive
+    changed_when: false  
+    failed_when: false
+
+  - name: "enable {{ podman.nginx.service.name }}.service"
+    ansible.builtin.service:
+      enabled: true
+      name: "{{ podman.nginx.service.name }}"
+      scope: user
+    when: container_isactive.stdout is match ("active")
+    register: service_nginx_enabled
+  
+  

@@ -1,0 +1,72 @@
+---
+#group vars for group centOS
+
+ansible_port: 22
+ansible_user: "{{ admin.user }}"
+ansible_become_pass: "{{ admin.password }}"
+ansible_ssh_common_args: -oIdentityFile=playbooks/sshkey/insecure_private_key
+ansible_ssh_private_key_file: playbooks/sshkey/lnx-docker-key
+
+
+admin:
+    user: admin
+    group: admin
+    password: "{{ admin_password }}"
+
+url:
+   nextjs: 'https://github.com/gz-bad-erzland-p3/projektarbeit.git'
+   
+install:
+    epel: 
+        name: epel repo
+        packages: ["epel-release"]
+    podman: 
+        name: podman
+        packages: ["podman","cockpit-podman","pcp-pmda-podman","podman-compose","podman-docker","podman-plugins","python3-podman"]
+   
+podman:
+    nextjs: 
+        image: nextjs
+        name: nextjs-instance
+        service: 
+            name: container-nextjs-instance
+            path: /home/{{ ansible_user }}/.config/systemd/user/
+    ssl:
+        docker_image: docker.io/paulczar/omgwtfssl
+        cert_subject: gz-bad-erzland-p3.de
+    nginx:
+        image: nginx:alpine
+        name: nginx-instance
+        service: 
+            name: container-nginx-instance
+            path: /home/{{ ansible_user }}/.config/systemd/user/
+
+firewalld:
+    name: firewalld
+    service_http: http
+    service_https: https
+    port_6556: 6556/tcp
+    port_8000: 8000/tcp
+    port_8443: 8443/tcp
+    
+        
+custom_check:
+    file: 
+        name: check_git.sh
+        systemd: 
+            service: check_git.service
+            timer: check_git.timer
+    
+checkmk:
+    user:
+        automation: 
+            name: automation
+            password: "{{ automation_password }}"
+    server:
+        name: lnx-cmk
+    agent:
+        name: cmk-agent
+        location: gzbe/check_mk/agents
+        version: check-mk-agent-2.1.0p20-1
+    service:
+        name: cmk-agent-ctl-daemon

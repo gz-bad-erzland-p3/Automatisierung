@@ -1,0 +1,7 @@
+---
+#install required packages
+  - name: for downlaod via git
+    become: true 
+    package:  
+       name: git
+       state: present

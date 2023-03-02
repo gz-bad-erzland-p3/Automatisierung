@@ -1,0 +1,27 @@
+---
+#playbook for setup the nextjs service
+  - name: check systemctl status
+    shell: |
+      systemctl --user status container-nextjs-instance.service | grep enabled
+    register: container_isenabled
+    changed_when: container_isenabled.rc > 0  
+    failed_when: false
+
+  - name: "enable {{ podman.nextjs.service.name }}.service"
+    ansible.builtin.service:
+      enabled: true
+      name: "{{ podman.nextjs.service.name }}"
+      scope: user
+    when: container_isenabled is changed 
+    
+  - name: "check for running container {{ podman.nextjs.name }}"
+    ansible.builtin.service:
+       name: "{{ podman.nextjs.service.name }}"
+       state: started
+       scope: user
+    register: container_nextjs_is_started   
+    until: container_nextjs_is_started.status.ActiveState == "active"
+    changed_when: container_nextjs_is_started.status.ActiveState == "active"
+    failed_when: false
+    retries: 5
+    delay: 3

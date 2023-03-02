@@ -1,0 +1,6 @@
+---
+#playbook for install required repositories
+  - name: "install {{ install.epel.name }}"
+    become: true 
+    package: 
+      name: "{{ install.epel.packages }}"

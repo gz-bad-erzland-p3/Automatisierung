@@ -1,0 +1,10 @@
+podman run -it --rm --name ngxtest \
+       -v /home/admin/srv_https.conf:/etc/nginx/conf.d/srv_https.conf:Z \
+	   -v /home/admin/certs_copy:/etc/nginx/certs:Z \
+	   --entrypoint /bin/sh \
+	   --pod=service_pod \
+	   docker.io/library/nginx:alpine 
+	  
+#Rechte für Dateien anpassen sudo restorecon -FR /etc/pki/nginx
+#sudo restorecon -F /home/vagrant/nginx/private/key.pem 
+	  

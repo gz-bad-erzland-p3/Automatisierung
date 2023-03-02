@@ -1,0 +1,30 @@
+---
+#playbook for setup proxy 
+  - name: icmp ping to proxy to check network
+    shell: |
+      ping 10.254.5.100 -c 1
+    failed_when: false
+    register: proxy_reachable
+    tags: proxy 
+
+  - name: check /etc/environment contains proxy settings
+    ansible.builtin.lineinfile:
+        path: /etc/environment
+        regexp: '^export no_proxy'
+        state: absent
+    when: proxy_reachable.rc == 0
+    check_mode: yes
+    failed_when: false
+    changed_when: false
+    register: proxy_check 
+    tags: proxy 
+    
+  - name: copy proxy settings if not configured
+    become: true
+    ansible.builtin.copy:
+        src: "{{ playbook_dir }}/files/environment"
+        dest: /etc/environment
+        force: true
+    when:
+      - proxy_reachable.rc == 0
+    tags: proxy
